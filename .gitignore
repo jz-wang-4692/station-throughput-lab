@@ -1,0 +1,19 @@
+# Data
+data/raw/
+data/processed/
+models/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+
+# Reports (generated)
+reports/scored_panel.parquet
+reports/calibration_factors.csv
+
+# OS
+.DS_Store
+Thumbs.db

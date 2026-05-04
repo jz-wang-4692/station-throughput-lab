@@ -1,0 +1,16 @@
+feature,js_divergence,train_mean,test_mean,shift_pct,drift_severity
+temp_max_f,0.5883,76.26,43.56,-42.9,severe
+precip_in,0.1069,0.1,0.15,41.3,moderate
+rolling_min_14,0.0425,37.19,14.45,-61.1,minimal
+rolling_median_7,0.032,66.59,34.65,-48.0,minimal
+rolling_mean_7,0.0311,66.05,35.57,-46.1,minimal
+dep_lag_2,0.0294,66.21,34.31,-48.2,minimal
+dep_lag_1,0.0286,66.25,34.68,-47.7,minimal
+rolling_mean_14,0.0269,65.4,38.44,-41.2,minimal
+rolling_median_14,0.0256,66.12,38.06,-42.4,minimal
+dep_lag_7,0.0219,66.25,38.2,-42.3,minimal
+rolling_max_14,0.0181,92.61,64.15,-30.7,minimal
+weekend_weekday_ratio,0.013,1.06,1.03,-2.6,minimal
+dow_rolling_mean_4,0.0101,64.55,46.08,-28.6,minimal
+dow_rolling_median_4,0.0097,65.27,46.32,-29.0,minimal
+station_historical_avg,0.007,56.79,65.91,16.1,minimal
