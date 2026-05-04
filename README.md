@@ -61,7 +61,7 @@ NYC Citi Bike public trip data:
 | Test Bias | +0.149 | **+0.038** |
 
 - MAPE is computed only on rows with nonzero actual departures; WAPE remains the primary percentage-error metric
-- Early-life stations: MAE gap ~28.0% higher than mature, with more uncertainty than established stations
+- Early-life stations: post-calibration MAE gap ~28.0% higher than mature, with more uncertainty than established stations
 - Top features: dep_lag_1, rolling_mean_7, DOW-specific rolling averages
 - 1 of 15 top features shows severe drift (temperature); lag and rolling demand features remain stable by JS divergence
 

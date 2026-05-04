@@ -90,25 +90,25 @@ network features are based on demand observed through the previous day.
 | WeightedEnsemble_L2 |      -8.535 | mean_absolute_error |           8.769 |    566.138 |                    0.004 |               0.018 |             2 | True        |           2 |
 | LightGBMXT_BAG_L2   |      -8.653 | mean_absolute_error |          13.105 |    847.819 |                    4.340 |             281.699 |             2 | True        |           3 |
 
-### Feature Importance (top 15)
+### Feature Importance (calibration split, top 15)
 
 | feature                |   importance |   stddev |   p_value |   n |   p99_high |   p99_low |
 |:-----------------------|-------------:|---------:|----------:|----:|-----------:|----------:|
-| dep_lag_1              |      20.2286 |   0.0655 |    0.0007 |   2 |    23.1786 |   17.2787 |
-| rolling_mean_7         |       4.2953 |   0.0785 |    0.0041 |   2 |     7.8292 |    0.7615 |
-| dow_rolling_mean_4     |       3.4122 |   0.0480 |    0.0032 |   2 |     5.5738 |    1.2506 |
-| dow_rolling_median_4   |       2.8044 |   0.0739 |    0.0059 |   2 |     6.1285 |   -0.5198 |
-| rolling_mean_14        |       2.0334 |   0.0415 |    0.0046 |   2 |     3.9001 |    0.1668 |
-| rolling_max_14         |       1.6230 |   0.0762 |    0.0106 |   2 |     5.0543 |   -1.8084 |
-| precip_in              |       1.4841 |   0.0387 |    0.0059 |   2 |     3.2283 |   -0.2601 |
-| temp_max_f             |       1.1705 |   0.1075 |    0.0207 |   2 |     6.0109 |   -3.6700 |
-| rolling_min_14         |       1.1028 |   0.0033 |    0.0007 |   2 |     1.2513 |    0.9543 |
-| rolling_median_7       |       1.0834 |   0.0443 |    0.0092 |   2 |     3.0789 |   -0.9120 |
-| dep_lag_2              |       0.7536 |   0.0256 |    0.0076 |   2 |     1.9053 |   -0.3982 |
-| station_historical_avg |       0.7486 |   0.0082 |    0.0025 |   2 |     1.1157 |    0.3816 |
-| rolling_median_14      |       0.6821 |   0.0562 |    0.0185 |   2 |     3.2137 |   -1.8495 |
-| dep_lag_7              |       0.6495 |   0.0553 |    0.0191 |   2 |     3.1392 |   -1.8402 |
-| weekend_weekday_ratio  |       0.6454 |   0.0265 |    0.0092 |   2 |     1.8361 |   -0.5453 |
+| dep_lag_1              |      15.7379 |   0.0195 |    0.0003 |   2 |    16.6147 |   14.8611 |
+| rolling_mean_7         |       2.2413 |   0.0320 |    0.0032 |   2 |     3.6797 |    0.8030 |
+| dow_rolling_mean_4     |       1.7248 |   0.0593 |    0.0077 |   2 |     4.3921 |   -0.9425 |
+| precip_in              |       1.1214 |   0.0260 |    0.0052 |   2 |     2.2924 |   -0.0497 |
+| rolling_mean_14        |       1.0836 |   0.0081 |    0.0017 |   2 |     1.4481 |    0.7191 |
+| rolling_min_14         |       1.0679 |   0.0116 |    0.0024 |   2 |     1.5898 |    0.5460 |
+| temp_max_f             |       0.9218 |   0.0449 |    0.0110 |   2 |     2.9423 |   -1.0988 |
+| dep_lag_7              |       0.9018 |   0.0552 |    0.0138 |   2 |     3.3859 |   -1.5823 |
+| dow_rolling_median_4   |       0.7707 |   0.0765 |    0.0223 |   2 |     4.2138 |   -2.6724 |
+| dep_lag_14             |       0.7292 |   0.0517 |    0.0159 |   2 |     3.0547 |   -1.5964 |
+| dep_lag_2              |       0.6203 |   0.0585 |    0.0212 |   2 |     3.2532 |   -2.0126 |
+| station_historical_avg |       0.5614 |   0.0583 |    0.0233 |   2 |     3.1860 |   -2.0631 |
+| dep_lag_28             |       0.5144 |   0.0217 |    0.0095 |   2 |     1.4899 |   -0.4611 |
+| rolling_median_7       |       0.3688 |   0.0681 |    0.0413 |   2 |     3.4346 |   -2.6969 |
+| rolling_median_28      |       0.3573 |   0.0257 |    0.0162 |   2 |     1.5149 |   -0.8004 |
 
 ![Feature importance](figures/feature_importance.png)
 
@@ -203,12 +203,12 @@ features, especially temperature, shift substantially.
 | dep_lag_2              |          0.0294 |        66.21 |       34.31 |       -48.2 | minimal          |
 | dep_lag_1              |          0.0286 |        66.25 |       34.68 |       -47.7 | minimal          |
 | rolling_mean_14        |          0.0269 |        65.4  |       38.44 |       -41.2 | minimal          |
-| rolling_median_14      |          0.0256 |        66.12 |       38.06 |       -42.4 | minimal          |
 | dep_lag_7              |          0.0219 |        66.25 |       38.2  |       -42.3 | minimal          |
-| rolling_max_14         |          0.0181 |        92.61 |       64.15 |       -30.7 | minimal          |
-| weekend_weekday_ratio  |          0.013  |         1.06 |        1.03 |        -2.6 | minimal          |
+| dep_lag_14             |          0.0145 |        66.07 |       43.43 |       -34.3 | minimal          |
+| rolling_median_28      |          0.0136 |        65.23 |       44.31 |       -32.1 | minimal          |
 | dow_rolling_mean_4     |          0.0101 |        64.55 |       46.08 |       -28.6 | minimal          |
 | dow_rolling_median_4   |          0.0097 |        65.27 |       46.32 |       -29   | minimal          |
+| dep_lag_28             |          0.009  |        65.95 |       54.49 |       -17.4 | minimal          |
 | station_historical_avg |          0.007  |        56.79 |       65.91 |        16.1 | minimal          |
 
 ![Feature drift heatmap](figures/feature_drift_heatmap.png)
@@ -242,16 +242,16 @@ useful (low median AE) even when the *level* is off (high bias before calibratio
 
 ![Actual vs predicted](figures/actual_vs_predicted.png)
 
-## Cold-Start vs Mature Stations
+## Cold-Start vs Mature Stations (Post-Calibration)
 
 |   rows |   stations |   avg_actual |   avg_predicted |    mae |   median_ae |   rmse |   wape |   nonzero_mape |   nonzero_mape_coverage |   bias | segment    |
 |-------:|-----------:|-------------:|----------------:|-------:|------------:|-------:|-------:|---------------:|------------------------:|-------:|:-----------|
 |    165 |          7 |       39.994 |          40.498 | 13.808 |       7.905 | 21.214 |  0.345 |          0.578 |                   1.000 |  0.013 | cold_start |
 |  65800 |       2131 |       34.925 |          36.252 | 10.785 |       4.400 | 20.253 |  0.309 |          0.530 |                   0.971 |  0.038 | mature     |
 
-The cold-start MAE gap is **28.0%** higher than mature stations.
-With hierarchical imputation, early-life stations get reasonable predictions when
-their own lag history is sparse rather than defaulting to zero or a global average.
+The cold-start MAE gap is **28.0%** higher than mature stations after
+calibration. This table measures final forecast performance for early-life
+stations, not the isolated effect of imputation alone.
 
 ## Accuracy by Borough
 
@@ -314,8 +314,8 @@ through minimum sample requirements at each level.
 
 ### 5. Cold-start imputation works but has limits
 
-Hierarchical spatial imputation (cluster → borough → city average) gives new
-stations reasonable predictions during sparse-history periods. The cold-start MAE gap
-(28.0% higher than mature) is directionally useful but should be monitored.
-The gap narrows as the station accumulates history and its own lag features become
-available.
+Hierarchical spatial imputation (cluster → borough → city average), followed by
+the calibration layer, gives early-life stations reasonable final forecasts during
+sparse-history periods. The post-calibration cold-start MAE gap (28.0%
+higher than mature) is directionally useful but should be monitored. The gap
+narrows as the station accumulates history and its own lag features become available.

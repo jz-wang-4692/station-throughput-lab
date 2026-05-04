@@ -134,9 +134,15 @@ def train_model(
     except Exception:
         leaderboard = pd.DataFrame()
 
-    # Feature importance
+    # Feature importance: use the held-out calibration split so the reported
+    # importances are not measured on the same rows used for fitting.
     try:
-        importance_data = train_data[feature_cols + [label]]
+        importance_data = df.loc[
+            df["split"] == "calibration",
+            feature_cols + [label],
+        ]
+        if importance_data.empty:
+            importance_data = train_data[feature_cols + [label]]
         if len(importance_data) > 50_000:
             importance_data = importance_data.sample(50_000, random_state=42)
         importance = predictor.feature_importance(

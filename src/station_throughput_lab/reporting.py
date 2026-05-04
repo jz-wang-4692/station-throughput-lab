@@ -336,7 +336,7 @@ network features are based on demand observed through the previous day.
 
 {leaderboard.head(5).to_markdown(index=False, floatfmt=".3f") if not leaderboard.empty else "(not available)"}
 
-### Feature Importance (top 15)
+### Feature Importance (calibration split, top 15)
 
 {feature_importance.head(15).to_markdown(index=False, floatfmt=".4f") if not feature_importance.empty else "(not available)"}
 
@@ -487,13 +487,13 @@ useful (low median AE) even when the *level* is off (high bias before calibratio
 
 ![Actual vs predicted](figures/actual_vs_predicted.png)
 
-## Cold-Start vs Mature Stations
+## Cold-Start vs Mature Stations (Post-Calibration)
 
 {cold_mature.to_markdown(index=False, floatfmt=".3f") if not cold_mature.empty else "(no cold-start stations in test set)"}
 
-The cold-start MAE gap is **{gap_pct:.1f}%** higher than mature stations.
-With hierarchical imputation, early-life stations get reasonable predictions when
-their own lag history is sparse rather than defaulting to zero or a global average.
+The cold-start MAE gap is **{gap_pct:.1f}%** higher than mature stations after
+calibration. This table measures final forecast performance for early-life
+stations, not the isolated effect of imputation alone.
 
 ## Accuracy by Borough
 
@@ -543,11 +543,11 @@ through minimum sample requirements at each level.
 
 ### 5. Cold-start imputation works but has limits
 
-Hierarchical spatial imputation (cluster → borough → city average) gives new
-stations reasonable predictions during sparse-history periods. The cold-start MAE gap
-({gap_pct:.1f}% higher than mature) is directionally useful but should be monitored.
-The gap narrows as the station accumulates history and its own lag features become
-available.
+Hierarchical spatial imputation (cluster → borough → city average), followed by
+the calibration layer, gives early-life stations reasonable final forecasts during
+sparse-history periods. The post-calibration cold-start MAE gap ({gap_pct:.1f}%
+higher than mature) is directionally useful but should be monitored. The gap
+narrows as the station accumulates history and its own lag features become available.
 """
 
     path = REPORTS_DIR / "throughput_lab_report.md"

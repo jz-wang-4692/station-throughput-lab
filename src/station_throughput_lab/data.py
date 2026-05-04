@@ -163,14 +163,20 @@ def build_daily_station_panel(
 
     print(f"Building daily station panel from {len(trip_paths)} trip files ...")
     frames = []
+    failed_files = []
     for path in tqdm(trip_paths, desc="Reading trip files"):
         try:
             raw = _read_trip_csv(path)
             df = _normalize_columns(raw)
             frames.append(df)
         except Exception as e:
-            print(f"  Skipping {path.name}: {e}")
-            continue
+            failed_files.append(f"{path.name}: {e}")
+
+    if failed_files:
+        raise RuntimeError(
+            "Failed to read required trip files: "
+            + "; ".join(failed_files)
+        )
 
     if not frames:
         raise RuntimeError("No trip data loaded.")
