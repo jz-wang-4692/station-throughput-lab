@@ -238,7 +238,9 @@ def write_report(
     _ensure_dirs()
 
     overall = eval_summary["overall"]
+    baseline_comparison = eval_summary.get("baseline_comparison", pd.DataFrame())
     cold_mature = eval_summary["cold_vs_mature"]
+    by_volume = eval_summary.get("by_station_volume", pd.DataFrame())
     by_borough = eval_summary["by_borough"]
     by_dow = eval_summary["by_dow"]
 
@@ -354,12 +356,6 @@ network features are based on demand observed through the previous day.
 
         mae_improve = (1 - after["mae"] / before["mae"]) * 100 if before["mae"] > 0 else 0
         wape_improve = (1 - after["wape"] / before["wape"]) * 100 if before["wape"] > 0 else 0
-        mape_improve = (
-            (1 - after["nonzero_mape"] / before["nonzero_mape"]) * 100
-            if before.get("nonzero_mape", 0) > 0
-            else 0
-        )
-
         report += f"""
 ## Calibration & Bias Correction
 
@@ -403,7 +399,6 @@ when segment-level data is sparse.
 |--------|-----------|-------------------|-------------|
 | MAE | {before['mae']:.2f} | {after['mae']:.2f} | {mae_improve:.1f}% |
 | WAPE | {before['wape']:.3f} | {after['wape']:.3f} | {wape_improve:.1f}% |
-| MAPE (nonzero actuals) | {before['nonzero_mape']:.3f} | {after['nonzero_mape']:.3f} | {mape_improve:.1f}% |
 | Bias | {before['bias']:+.3f} | {after['bias']:+.3f} | near-zero |
 
 ![Calibration before/after](figures/calibration_before_after.png)
@@ -413,11 +408,25 @@ eliminated systematic bias ({before['bias']:+.3f} → {after['bias']:+.3f}).
 This is a non-parametric correction that requires no retraining — it can be
 updated daily as new calibration data arrives, making it suitable for
 rolling operational forecasts.
+"""
 
-MAPE is reported only for rows with nonzero actual departures because standard
-MAPE is undefined on zero-actual rows. WAPE remains the primary percentage-error
-metric because it uses total volume in the denominator and handles sparse demand
-more reliably.
+    if not baseline_comparison.empty:
+        baseline_display = baseline_comparison[
+            [
+                "method", "kind", "mae", "median_ae", "wape", "bias",
+                "wape_skill_vs_best_baseline",
+            ]
+        ].rename(columns={
+            "wape_skill_vs_best_baseline": "wape_skill_pct",
+        })
+        report += f"""
+## Baseline Skill Check
+
+Simple rolling baselines are the right yardstick for this forecasting task. The
+skill column is measured against the strongest baseline WAPE, so positive values
+mean the model improves on the best simple operational rule.
+
+{baseline_display.to_markdown(index=False, floatfmt=".3f")}
 """
 
     # --- Distribution Shift Analysis section ---
@@ -481,8 +490,6 @@ useful (low median AE) even when the *level* is off (high bias before calibratio
 | Median AE | {overall['median_ae']:.2f} |
 | RMSE | {overall['rmse']:.2f} |
 | WAPE | {overall['wape']:.3f} |
-| MAPE (nonzero actuals) | {overall['nonzero_mape']:.3f} |
-| MAPE coverage | {overall['nonzero_mape_coverage']:.1%} |
 | Bias | {overall['bias']:+.3f} |
 
 ![Actual vs predicted](figures/actual_vs_predicted.png)
@@ -494,6 +501,10 @@ useful (low median AE) even when the *level* is off (high bias before calibratio
 The cold-start MAE gap is **{gap_pct:.1f}%** higher than mature stations after
 calibration. This table measures final forecast performance for early-life
 stations, not the isolated effect of imputation alone.
+
+## Accuracy by Station Volume
+
+{by_volume[["volume_segment", "rows", "stations", "avg_train_departures", "avg_actual", "mae", "median_ae", "wape", "bias"]].to_markdown(index=False, floatfmt=".3f") if not by_volume.empty else "(not available)"}
 
 ## Accuracy by Borough
 

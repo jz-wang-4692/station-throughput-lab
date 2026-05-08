@@ -31,9 +31,6 @@ from station_throughput_lab.config import (
     TEST_START,
     TRAIN_END,
 )
-from station_throughput_lab.evaluation import nonzero_mape, nonzero_mape_coverage
-
-
 # Columns to exclude from features (target, identifiers, leaky)
 EXCLUDE_COLS = {
     "departures",          # target
@@ -172,19 +169,6 @@ def train_model(
             new_station_share=("is_new_station", "mean"),
         )
     )
-    split_metric_rows = []
-    for split, group in df.groupby("split"):
-        split_metric_rows.append({
-            "split": split,
-            "nonzero_mape": nonzero_mape(group["departures"], group["predicted"]),
-            "nonzero_mape_coverage": nonzero_mape_coverage(group["departures"]),
-        })
-    split_summary = split_summary.merge(
-        pd.DataFrame(split_metric_rows),
-        on="split",
-        how="left",
-    )
-
     print("\nSplit summary:")
     print(split_summary.to_string(index=False))
 

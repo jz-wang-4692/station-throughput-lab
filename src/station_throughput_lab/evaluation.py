@@ -37,25 +37,6 @@ def wape(actual: pd.Series, predicted: pd.Series) -> float:
     return float((actual - predicted).abs().sum() / denom)
 
 
-def nonzero_mape(actual: pd.Series, predicted: pd.Series) -> float:
-    """Mean absolute percentage error on rows with nonzero actuals.
-
-    Standard MAPE is undefined when actual demand is zero. Daily station
-    throughput has real zero-departure rows, so this metric is reported as a
-    diagnostic rather than the primary percentage-error metric.
-    """
-    mask = actual > 0
-    if not mask.any():
-        return np.nan
-    return float(((actual[mask] - predicted[mask]).abs() / actual[mask]).mean())
-
-
-def nonzero_mape_coverage(actual: pd.Series) -> float:
-    if len(actual) == 0:
-        return np.nan
-    return float((actual > 0).mean())
-
-
 def bias(actual: pd.Series, predicted: pd.Series) -> float:
     denom = actual.sum()
     if denom == 0:
@@ -65,8 +46,14 @@ def bias(actual: pd.Series, predicted: pd.Series) -> float:
 
 def _metrics_for_group(group: pd.DataFrame) -> dict:
     """Compute standard metrics for a group of rows."""
-    a = group["departures"]
     p = group["predicted"]
+    return _metrics_for_predictions(group, p)
+
+
+def _metrics_for_predictions(group: pd.DataFrame, predicted: pd.Series) -> dict:
+    """Compute standard metrics for a group and arbitrary prediction series."""
+    a = group["departures"]
+    p = predicted.clip(lower=0)
     return {
         "rows": len(group),
         "stations": group["station_id"].nunique(),
@@ -76,8 +63,6 @@ def _metrics_for_group(group: pd.DataFrame) -> dict:
         "median_ae": median_ae(a, p),
         "rmse": rmse(a, p),
         "wape": wape(a, p),
-        "nonzero_mape": nonzero_mape(a, p),
-        "nonzero_mape_coverage": nonzero_mape_coverage(a),
         "bias": bias(a, p),
     }
 
@@ -96,11 +81,59 @@ def evaluate_test_set(scored_panel: pd.DataFrame) -> dict:
             "median_ae": 0,
             "rmse": 0,
             "wape": 0,
-            "nonzero_mape": 0,
-            "nonzero_mape_coverage": 0,
             "bias": 0,
         }
     return _metrics_for_group(test)
+
+
+def evaluate_baseline_comparison(scored_panel: pd.DataFrame) -> pd.DataFrame:
+    """Compare the model against simple operational baselines on the test set."""
+    test = scored_panel[scored_panel["split"] == "test"].copy()
+    if test.empty:
+        test = scored_panel[scored_panel["split"] == "calibration"].copy()
+    if test.empty:
+        return pd.DataFrame()
+
+    methods: list[tuple[str, str, str]] = [
+        ("Yesterday", "baseline", "dep_lag_1"),
+        ("Same weekday last week", "baseline", "dep_lag_7"),
+        ("Rolling 7-day mean", "baseline", "rolling_mean_7"),
+        ("Rolling 28-day mean", "baseline", "rolling_mean_28"),
+        ("Same-DOW rolling mean", "baseline", "dow_rolling_mean_4"),
+    ]
+    if "predicted_raw" in test.columns:
+        methods.append(("Raw ML model", "model", "predicted_raw"))
+    methods.append(("Calibrated ML model", "model", "predicted"))
+
+    rows = []
+    for method, kind, col in methods:
+        if col not in test.columns:
+            continue
+        valid = test[test[col].notna()].copy()
+        if valid.empty:
+            continue
+        metrics = _metrics_for_predictions(valid, valid[col])
+        metrics["method"] = method
+        metrics["kind"] = kind
+        rows.append(metrics)
+
+    if not rows:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(rows)
+    baseline = out[out["kind"] == "baseline"]
+    best_wape = baseline["wape"].min() if not baseline.empty else np.nan
+    if pd.notna(best_wape) and best_wape > 0:
+        out["wape_skill_vs_best_baseline"] = (1 - out["wape"] / best_wape) * 100
+    else:
+        out["wape_skill_vs_best_baseline"] = np.nan
+    return out[
+        [
+            "method", "kind", "rows", "stations", "avg_actual", "avg_predicted",
+            "mae", "median_ae", "rmse", "wape", "bias",
+            "wape_skill_vs_best_baseline",
+        ]
+    ]
 
 
 def evaluate_cold_vs_mature(scored_panel: pd.DataFrame) -> pd.DataFrame:
@@ -123,6 +156,65 @@ def evaluate_cold_vs_mature(scored_panel: pd.DataFrame) -> pd.DataFrame:
         metrics["segment"] = label
         rows.append(metrics)
     return pd.DataFrame(rows)
+
+
+def evaluate_by_station_volume(scored_panel: pd.DataFrame) -> pd.DataFrame:
+    """Accuracy by train-period station volume tier."""
+    test = scored_panel[scored_panel["split"] == "test"].copy()
+    if test.empty:
+        test = scored_panel[scored_panel["split"] == "calibration"].copy()
+    if test.empty:
+        return pd.DataFrame()
+
+    train_avg = (
+        scored_panel[scored_panel["split"] == "train"]
+        .groupby("station_id")["departures"]
+        .mean()
+    )
+    test["train_avg_departures"] = test["station_id"].map(train_avg)
+    known = test.dropna(subset=["train_avg_departures"]).copy()
+    rows = []
+
+    if not known.empty:
+        station_volume = (
+            known[["station_id", "train_avg_departures"]]
+            .drop_duplicates("station_id")
+        )
+        q33, q67 = station_volume["train_avg_departures"].quantile([1 / 3, 2 / 3])
+
+        def _volume_tier(value: float) -> str:
+            if value <= q33:
+                return "low_volume"
+            if value <= q67:
+                return "medium_volume"
+            return "high_volume"
+
+        known["volume_segment"] = known["train_avg_departures"].map(_volume_tier)
+        for segment, group in known.groupby("volume_segment"):
+            metrics = _metrics_for_group(group)
+            metrics["volume_segment"] = segment
+            metrics["avg_train_departures"] = float(group["train_avg_departures"].mean())
+            rows.append(metrics)
+
+    no_train = test[test["train_avg_departures"].isna()].copy()
+    if not no_train.empty:
+        metrics = _metrics_for_group(no_train)
+        metrics["volume_segment"] = "no_train_history"
+        metrics["avg_train_departures"] = np.nan
+        rows.append(metrics)
+
+    if not rows:
+        return pd.DataFrame()
+
+    order = {
+        "low_volume": 0,
+        "medium_volume": 1,
+        "high_volume": 2,
+        "no_train_history": 3,
+    }
+    out = pd.DataFrame(rows)
+    out["_order"] = out["volume_segment"].map(order).fillna(99)
+    return out.sort_values("_order").drop(columns="_order").reset_index(drop=True)
 
 
 def evaluate_by_cluster(scored_panel: pd.DataFrame, top_n: int = 15) -> pd.DataFrame:
@@ -203,7 +295,9 @@ def build_evaluation_summary(scored_panel: pd.DataFrame) -> dict:
     """Build all evaluation tables."""
     return {
         "overall": evaluate_test_set(scored_panel),
+        "baseline_comparison": evaluate_baseline_comparison(scored_panel),
         "cold_vs_mature": evaluate_cold_vs_mature(scored_panel),
+        "by_station_volume": evaluate_by_station_volume(scored_panel),
         "by_cluster": evaluate_by_cluster(scored_panel),
         "by_borough": evaluate_by_borough(scored_panel),
         "by_dow": evaluate_by_dow(scored_panel),

@@ -57,10 +57,11 @@ NYC Citi Bike public trip data:
 |--------|-----------|-------------------|
 | Test MAE | 11.70 | **10.79** |
 | Test WAPE | 0.335 | **0.309** |
-| Test MAPE (nonzero actuals) | 0.582 | **0.530** |
 | Test Bias | +0.149 | **+0.038** |
 
-- MAPE is computed only on rows with nonzero actual departures; WAPE remains the primary percentage-error metric
+- WAPE is the primary percentage-error metric because it is stable for sparse station-day demand
+- Baseline check: calibrated model WAPE 0.309 vs best simple baseline 0.314 (yesterday's departures)
+- High-volume stations: WAPE 0.298; low-volume stations remain the hardest segment (WAPE 0.472)
 - Early-life stations: post-calibration MAE gap ~28.0% higher than mature, with more uncertainty than established stations
 - Top features: dep_lag_1, rolling_mean_7, DOW-specific rolling averages
 - 1 of 15 top features shows severe drift (temperature); lag and rolling demand features remain stable by JS divergence

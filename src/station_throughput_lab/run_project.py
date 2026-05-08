@@ -200,8 +200,14 @@ def main() -> None:
         REPORTS_DIR / "calibration_factors.csv", index=False,
     )
     drift_df.to_csv(REPORTS_DIR / "feature_drift.csv", index=False)
+    eval_summary["baseline_comparison"].to_csv(
+        REPORTS_DIR / "baseline_comparison.csv", index=False,
+    )
     eval_summary["cold_vs_mature"].to_csv(
         REPORTS_DIR / "cold_vs_mature.csv", index=False,
+    )
+    eval_summary["by_station_volume"].to_csv(
+        REPORTS_DIR / "station_volume_segments.csv", index=False,
     )
     eval_summary["by_borough"].to_csv(
         REPORTS_DIR / "accuracy_by_borough.csv", index=False,

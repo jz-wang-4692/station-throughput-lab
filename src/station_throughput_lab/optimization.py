@@ -34,17 +34,6 @@ class CalibrationResult:
     calibration_diagnostics: dict
 
 
-def _nonzero_mape(df: pd.DataFrame) -> float:
-    mask = df["departures"] > 0
-    if not mask.any():
-        return np.nan
-    pct_error = (
-        (df.loc[mask, "departures"] - df.loc[mask, "predicted"]).abs()
-        / df.loc[mask, "departures"]
-    )
-    return float(pct_error.mean())
-
-
 def _compute_multiplicative_factors(
     cal: pd.DataFrame,
     group_cols: list[str],
@@ -195,7 +184,6 @@ def run_calibration_optimization(
     diagnostics = {
         "before": {
             "mae": float(test_before["abs_error"].mean()),
-            "nonzero_mape": _nonzero_mape(test_before),
             "bias": float(
                 (test_before["predicted"].sum() - test_before["departures"].sum())
                 / max(test_before["departures"].sum(), 1)
@@ -207,7 +195,6 @@ def run_calibration_optimization(
         },
         "after": {
             "mae": float(test_after["abs_error"].mean()),
-            "nonzero_mape": _nonzero_mape(test_after),
             "bias": float(
                 (test_after["predicted"].sum() - test_after["departures"].sum())
                 / max(test_after["departures"].sum(), 1)
@@ -260,11 +247,6 @@ def run_calibration_optimization(
     print(f"  Borough×DOW factors: {diagnostics['n_borough_dow_factors']}")
     print(f"\n  Test MAE:  {diagnostics['before']['mae']:.2f} → {diagnostics['after']['mae']:.2f}")
     print(f"  Test WAPE: {diagnostics['before']['wape']:.3f} → {diagnostics['after']['wape']:.3f}")
-    print(
-        "  Test nonzero MAPE: "
-        f"{diagnostics['before']['nonzero_mape']:.3f} → "
-        f"{diagnostics['after']['nonzero_mape']:.3f}"
-    )
     print(f"  Test Bias: {diagnostics['before']['bias']:.3f} → {diagnostics['after']['bias']:.3f}")
 
     return CalibrationResult(

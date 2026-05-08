@@ -1,6 +1,6 @@
 # Station Throughput Lab Report
 
-Generated: 2026-05-04
+Generated: 2026-05-08
 
 ## Overview
 
@@ -22,11 +22,11 @@ then lets AutoGluon handle model selection and ensembling.
 
 ## Split Summary
 
-| split       |   rows |   stations |   days |   avg_departures |   avg_predicted |   mae |   median_ae |   new_station_share |   nonzero_mape |   nonzero_mape_coverage |
-|:------------|-------:|-----------:|-------:|-----------------:|----------------:|------:|------------:|--------------------:|---------------:|------------------------:|
-| calibration |  66849 |       2240 |     30 |            55.45 |           61.33 | 11.67 |        4.80 |                0.00 |           0.43 |                    0.97 |
-| test        |  65965 |       2136 |     31 |            34.94 |           40.16 | 11.70 |        4.57 |                0.00 |           0.58 |                    0.97 |
-| train       | 476250 |       2274 |    214 |            66.33 |           66.33 |  7.80 |        4.31 |                0.29 |           0.28 |                    0.97 |
+| split       |   rows |   stations |   days |   avg_departures |   avg_predicted |   mae |   median_ae |   new_station_share |
+|:------------|-------:|-----------:|-------:|-----------------:|----------------:|------:|------------:|--------------------:|
+| calibration |  66849 |       2240 |     30 |            55.45 |           61.33 | 11.67 |        4.80 |                0.00 |
+| test        |  65965 |       2136 |     31 |            34.94 |           40.16 | 11.70 |        4.57 |                0.00 |
+| train       | 476250 |       2274 |    214 |            66.33 |           66.33 |  7.80 |        4.31 |                0.29 |
 
 ## Feature Engineering
 
@@ -154,7 +154,6 @@ when segment-level data is sparse.
 |--------|-----------|-------------------|-------------|
 | MAE | 11.70 | 10.79 | 7.7% |
 | WAPE | 0.335 | 0.309 | 7.7% |
-| MAPE (nonzero actuals) | 0.582 | 0.530 | 8.9% |
 | Bias | +0.149 | +0.038 | near-zero |
 
 ![Calibration before/after](figures/calibration_before_after.png)
@@ -165,10 +164,21 @@ This is a non-parametric correction that requires no retraining — it can be
 updated daily as new calibration data arrives, making it suitable for
 rolling operational forecasts.
 
-MAPE is reported only for rows with nonzero actual departures because standard
-MAPE is undefined on zero-actual rows. WAPE remains the primary percentage-error
-metric because it uses total volume in the denominator and handles sparse demand
-more reliably.
+## Baseline Skill Check
+
+Simple rolling baselines are the right yardstick for this forecasting task. The
+skill column is measured against the strongest baseline WAPE, so positive values
+mean the model improves on the best simple operational rule.
+
+| method                 | kind     |    mae |   median_ae |   wape |   bias |   wape_skill_pct |
+|:-----------------------|:---------|-------:|------------:|-------:|-------:|-----------------:|
+| Yesterday              | baseline | 10.964 |       5.000 |  0.314 | -0.007 |            0.000 |
+| Same weekday last week | baseline | 16.719 |       6.000 |  0.479 |  0.093 |          -52.489 |
+| Rolling 7-day mean     | baseline | 12.569 |       4.857 |  0.360 |  0.018 |          -14.644 |
+| Rolling 28-day mean    | baseline | 14.016 |       5.500 |  0.401 |  0.253 |          -27.841 |
+| Same-DOW rolling mean  | baseline | 16.140 |       6.250 |  0.462 |  0.319 |          -47.213 |
+| Raw ML model           | model    | 11.698 |       4.575 |  0.335 |  0.149 |           -6.700 |
+| Calibrated ML model    | model    | 10.793 |       4.407 |  0.309 |  0.038 |            1.557 |
 
 ## Distribution Shift Analysis
 
@@ -236,31 +246,38 @@ useful (low median AE) even when the *level* is off (high bias before calibratio
 | Median AE | 4.41 |
 | RMSE | 20.26 |
 | WAPE | 0.309 |
-| MAPE (nonzero actuals) | 0.530 |
-| MAPE coverage | 97.2% |
 | Bias | +0.038 |
 
 ![Actual vs predicted](figures/actual_vs_predicted.png)
 
 ## Cold-Start vs Mature Stations (Post-Calibration)
 
-|   rows |   stations |   avg_actual |   avg_predicted |    mae |   median_ae |   rmse |   wape |   nonzero_mape |   nonzero_mape_coverage |   bias | segment    |
-|-------:|-----------:|-------------:|----------------:|-------:|------------:|-------:|-------:|---------------:|------------------------:|-------:|:-----------|
-|    165 |          7 |       39.994 |          40.498 | 13.808 |       7.905 | 21.214 |  0.345 |          0.578 |                   1.000 |  0.013 | cold_start |
-|  65800 |       2131 |       34.925 |          36.252 | 10.785 |       4.400 | 20.253 |  0.309 |          0.530 |                   0.971 |  0.038 | mature     |
+|   rows |   stations |   avg_actual |   avg_predicted |    mae |   median_ae |   rmse |   wape |   bias | segment    |
+|-------:|-----------:|-------------:|----------------:|-------:|------------:|-------:|-------:|-------:|:-----------|
+|    165 |          7 |       39.994 |          40.498 | 13.808 |       7.905 | 21.214 |  0.345 |  0.013 | cold_start |
+|  65800 |       2131 |       34.925 |          36.252 | 10.785 |       4.400 | 20.253 |  0.309 |  0.038 | mature     |
 
 The cold-start MAE gap is **28.0%** higher than mature stations after
 calibration. This table measures final forecast performance for early-life
 stations, not the isolated effect of imputation alone.
 
+## Accuracy by Station Volume
+
+| volume_segment   |   rows |   stations |   avg_train_departures |   avg_actual |    mae |   median_ae |   wape |   bias |
+|:-----------------|-------:|-----------:|-----------------------:|-------------:|-------:|------------:|-------:|-------:|
+| low_volume       |  21925 |        710 |                  9.638 |        4.926 |  2.327 |       1.811 |  0.472 | -0.174 |
+| medium_volume    |  21962 |        710 |                 36.638 |       18.634 |  5.859 |       4.493 |  0.314 |  0.004 |
+| high_volume      |  21927 |        711 |                161.045 |       81.244 | 24.176 |      17.251 |  0.298 |  0.059 |
+| no_train_history |    151 |          5 |                nan     |       39.483 | 14.255 |       8.390 |  0.361 |  0.014 |
+
 ## Accuracy by Borough
 
-|   rows |   stations |   avg_actual |   avg_predicted |    mae |   median_ae |   rmse |   wape |   nonzero_mape |   nonzero_mape_coverage |   bias | borough   |
-|-------:|-----------:|-------------:|----------------:|-------:|------------:|-------:|-------:|---------------:|------------------------:|-------:|:----------|
-|  22066 |        716 |       73.492 |          77.982 | 22.182 |      14.212 | 32.869 |  0.302 |          0.523 |                   0.994 |  0.061 | Manhattan |
-|  17242 |        557 |       24.287 |          24.523 |  7.559 |       4.272 | 12.099 |  0.311 |          0.531 |                   0.973 |  0.010 | Brooklyn  |
-|  14175 |        459 |       11.763 |          11.212 |  3.920 |       2.655 |  5.726 |  0.333 |          0.529 |                   0.960 | -0.047 | Queens    |
-|  12482 |        404 |        7.809 |           7.173 |  2.931 |       2.086 |  4.358 |  0.375 |          0.544 |                   0.943 | -0.081 | Bronx     |
+|   rows |   stations |   avg_actual |   avg_predicted |    mae |   median_ae |   rmse |   wape |   bias | borough   |
+|-------:|-----------:|-------------:|----------------:|-------:|------------:|-------:|-------:|-------:|:----------|
+|  22066 |        716 |       73.492 |          77.982 | 22.182 |      14.212 | 32.869 |  0.302 |  0.061 | Manhattan |
+|  17242 |        557 |       24.287 |          24.523 |  7.559 |       4.272 | 12.099 |  0.311 |  0.010 | Brooklyn  |
+|  14175 |        459 |       11.763 |          11.212 |  3.920 |       2.655 |  5.726 |  0.333 | -0.047 | Queens    |
+|  12482 |        404 |        7.809 |           7.173 |  2.931 |       2.086 |  4.358 |  0.375 | -0.081 | Bronx     |
 
 ## Accuracy by Day of Week
 
